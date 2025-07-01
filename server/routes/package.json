@@ -1,0 +1,14 @@
+{
+  "name": "ai-finance-tracker-server",
+  "version": "1.0.0",
+  "description": "Backend API for AI-powered finance tracker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "robertsmith70",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
