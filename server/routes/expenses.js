@@ -1,22 +1,29 @@
 const express = require('express');
 const router = express.Router();
+const Expense = require('../models/expense');
 
-let expenses = [
-    {id: 1, name: "Choclate", price: 2.99}, {id: 2, name: "Crisps", price: 0.99}
-];
+router.post('/', async (req, res) => {
 
-router.post('/', (req, res) => {
-    const { name } = req.body;
-    const { price } = req.body;
-    const newExpense = {id: expenses.length + 1, name, price};
-    expenses.push(newExpense);
-    res.status(201).json(newExpense);
+    const {name, price, category} = req.body;
+    if(!name || !category || price == null) return res.status(400).send('name, price and category is required');
+    if(price < 0.01)  return res.status(400).send('Price must be at least 0.01');
+    try{
+        const expense = new Expense({name, price, category})
+        const expenseToSave = await expense.save();
+        res.status(201).json(expenseToSave);
+    } catch(error){
+        res.status(400).json({message: error.message});
+    }
 });
 
-router.get('/', (req, res) => {
-    res.json(expenses);
+router.get('/', async (req, res) => {
+    try{
+        const expense = await Expense.find();
+        res.json(expense);
+    } catch(error){
+        res.status(400).json({message: error.message});
+    }
 });
-
 
 router.put('/:id', (req, res) => {
     const expense = expenses.find(i => i.id === parseInt(req.params.id));
