@@ -1,11 +1,18 @@
 //set up express server
+import dotenv from 'dotenv';
+dotenv.config();
 
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import expensesRoute from './routes/expense.routes.js';
+import authRoute from './routes/auth.routes.js';
 
-const express = require('express');
-const mongoose = require('mongoose');
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 const mongoString = process.env.DATABASE_URL;
-
 mongoose.connect(mongoString);
 const database = mongoose.connection;
 
@@ -17,22 +24,15 @@ database.once('connected', () => {
     console.log('Database Connected')
 })
 
-const app = express();
-app.use(express.json());
-
-
-//define routes
 app.get('/', (req, res) => {
     res.send('<h1> Hello, Express.js Server!</h1>');
 });
 
-//Include route files
-const expensesRoute = require('./routes/expenses');
-
-//use routes
 app.use('/expenses', expensesRoute);
+app.use('/auth', authRoute);
 
-const port = process.env.PORT || 3000; // Using an environment variable or defaulting to 3000
+
+const port = process.env.PORT
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
