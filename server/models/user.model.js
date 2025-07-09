@@ -25,9 +25,7 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save", async function (next) {
     if(!this.isModified("password")) return next(); //this line was added  to stop rehashing of already hashed passwords
     this.password = await bcrypt.hash(this.password,12);
-    
 });
-
 
 userSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);

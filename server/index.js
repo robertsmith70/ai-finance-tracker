@@ -7,10 +7,13 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import expensesRoute from './routes/expense.routes.js';
 import authRoute from './routes/auth.routes.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
 
 const mongoString = process.env.DATABASE_URL;
 mongoose.connect(mongoString);

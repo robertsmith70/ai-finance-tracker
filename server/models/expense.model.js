@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import User from './user.model.js';
 
 const expenseSchema = new mongoose.Schema({
   name: {
@@ -19,6 +20,11 @@ const expenseSchema = new mongoose.Schema({
   date: {
     type: Date,
     default: Date.now
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: User,
+    required: true,
   }
 });
 
