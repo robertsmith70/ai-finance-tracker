@@ -1,5 +1,11 @@
 import User from "../models/user.model.js";
 import { createSecretToken } from "../util/secret.token.js";
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+};
 
 export const newUser = async (req, res) => {
   const { email, password, username, createdAt } = req.body;
@@ -15,14 +21,9 @@ export const newUser = async (req, res) => {
     }
 
     const user = await User.create({ email, password, username, createdAt });
-
     const token = createSecretToken(user._id);
-    res.cookie("token", token, {
-      withCredentials: true,
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+
+    res.cookie("token", token, cookieOptions);
 
     res.status(201).json({
       message: "User registered successfully",
@@ -31,8 +32,8 @@ export const newUser = async (req, res) => {
         _id: user._id,
         email: user.email,
         username: user.username,
-        createdAt: user.createdAt,
-      },
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
     console.error("Registration Error:", error);
@@ -44,26 +45,18 @@ export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Email and password are required." });
+    return res.status(400).json({ message: "Email and password are required." });
   }
 
   try {
     const user = await User.findOne({ email });
     if (!user || !(await user.comparePassword(password))) {
-      return res
-        .status(401)
-        .json({ message: "Incorrect email or password" });
+      return res.status(401).json({ message: "Incorrect email or password" });
     }
 
     const token = createSecretToken(user._id);
-    res.cookie("token", token, {
-      withCredentials: true,
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: "User signed in successfully",
@@ -72,8 +65,8 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         email: user.email,
         username: user.username,
-        createdAt: user.createdAt,
-      },
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -83,11 +76,7 @@ export const loginUser = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+    res.clearCookie("token", cookieOptions);
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
