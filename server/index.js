@@ -13,7 +13,7 @@ import insightsRoute from './routes/insights.routes.js';
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:3000", // frontend URL
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
     credentials: true,
   })
 );app.use(express.json());
