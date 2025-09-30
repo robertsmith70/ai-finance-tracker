@@ -13,7 +13,7 @@ import insightsRoute from './routes/insights.routes.js';
 const app = express();
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+    origin: process.env.CLIENT_ORIGIN || "https://ai-finance-tracker-fawn.vercel.app",
     credentials: true,
   })
 );app.use(express.json());
