@@ -70,16 +70,25 @@ const localFallback = (agg) => {
 export const getInsights = async (req, res) => {
   const userId = req.user._id;
 
-  // serve cache
+  // serve cache if valid
   const hit = cache.get(String(userId));
   if (hit && hit.expires > Date.now()) {
+    console.log("Cache hit for user:", userId);
     return res.json(hit.payload);
   }
 
+  console.log("Cache miss → aggregating data...");
   const agg = await aggregateData(userId);
 
-  // If no key, return local tips
+  // Debug: check API key visibility
+  console.log("OPENAI_API_KEY present:", !!process.env.OPENAI_API_KEY);
+  if (process.env.OPENAI_API_KEY) {
+    console.log("Key starts with:", process.env.OPENAI_API_KEY.slice(0, 8));
+  }
+
+  // If no key, use fallback
   if (!process.env.OPENAI_API_KEY) {
+    console.warn("No OPENAI_API_KEY found → using local fallback");
     const payload = { model: 'local-fallback', tips: localFallback(agg) };
     cache.set(String(userId), { expires: Date.now() + getTTL(), payload });
     return res.json(payload);
@@ -89,37 +98,28 @@ export const getInsights = async (req, res) => {
   try {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Keep prompt compact: send aggregates, not raw PII
     const prompt = [
-        
-      { role: 'system', content:
-    `You are a budgeting coach. Be concise, numeric, and actionable.
-     Use ${CURRENCY} with the € symbol. Use monthly caps (no weekly unless asked).
-     Do NOT claim "over budget" unless a budget baseline is provided.` },
+      { role: 'system', content: "You are a budgeting coach..." },
       {
         role: 'user',
-        content:
-`Using these aggregates, generate 5 bullet budgeting tips with numeric targets (caps, % reductions, weekly limits).
-Context JSON:
-{
-  "totalsByCategory": ${JSON.stringify(agg.byCategory)},
-  "monthlyTotals": ${JSON.stringify(agg.byMonth)},
-  "grandTotalLast60": ${agg.grandTotal},
-  "overspentCandidates": ${JSON.stringify(agg.overspent)}
-}
-Rules:
-- Short bullets, each with a number.
-- Refer to categories by name; do not invent categories.
-- If month-over-month rose >15% for any month, call it out with a suggested cap.
-- Output bullets only, no extra prose.`
+        content: `Aggregated JSON: ${JSON.stringify({
+          totalsByCategory: agg.byCategory,
+          monthlyTotals: agg.byMonth,
+          grandTotalLast60: agg.grandTotal,
+          overspentCandidates: agg.overspent,
+        })}`
       }
     ];
+
+    console.log("Sending prompt to OpenAI:", JSON.stringify(prompt).slice(0, 200) + "...");
 
     const chat = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: prompt,
       temperature: 0.2,
     });
+
+    console.log("OpenAI response received:", chat?.choices?.[0]?.message?.content?.slice(0, 200));
 
     const text = chat.choices?.[0]?.message?.content ?? '';
     const tips = text
@@ -131,10 +131,12 @@ Rules:
     const payload = { model: 'gpt-4o-mini', tips };
     cache.set(String(userId), { expires: Date.now() + getTTL(), payload });
     return res.json(payload);
+
   } catch (err) {
-    console.error('OpenAI error', err?.response?.data || err);
+    console.error("❌ OpenAI error:", err?.response?.data || err.message || err);
     const payload = { model: 'local-fallback:error', tips: localFallback(agg) };
     cache.set(String(userId), { expires: Date.now() + getTTL(), payload });
     return res.json(payload);
   }
 };
+
